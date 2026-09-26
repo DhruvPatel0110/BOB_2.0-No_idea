@@ -6,6 +6,19 @@
       "env": {
         "GITHUB_PERSONAL_ACCESS_TOKEN": "${env:GITHUB_TOKEN}"
       }
+    },
+    "prism": {
+      "command": "python",
+      "args": ["-m", "prism_mcp.server"],
+      "env": {
+        "GITHUB_TOKEN":        "${env:GITHUB_TOKEN}",
+        "OLLAMA_BASE_URL":     "${env:OLLAMA_BASE_URL}",
+        "OLLAMA_MODEL":        "${env:OLLAMA_MODEL}",
+        "OLLAMA_EMBED_MODEL":  "${env:OLLAMA_EMBED_MODEL}",
+        "CHROMA_PERSIST_DIR":  "${env:CHROMA_PERSIST_DIR}",
+        "HF_TOKEN":            "${env:HF_TOKEN}",
+        "LOG_LEVEL":           "WARNING"
+      }
     }
   }
 }
