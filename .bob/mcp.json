@@ -17,7 +17,8 @@
         "OLLAMA_EMBED_MODEL":  "${env:OLLAMA_EMBED_MODEL}",
         "CHROMA_PERSIST_DIR":  "${env:CHROMA_PERSIST_DIR}",
         "HF_TOKEN":            "${env:HF_TOKEN}",
-        "LOG_LEVEL":           "WARNING"
+        "LOG_LEVEL":                    "WARNING",
+        "HF_HUB_DISABLE_SYMLINKS_WARNING": "1"
       }
     }
   }

@@ -140,11 +140,25 @@ def run_analyze_pr(args: dict) -> dict:
     # ── Run pipeline ──────────────────────────────────────────────────────
     try:
         from prism_mcp.core.pipeline import review_pr
+        from prism_mcp.tools.retrieve import run_retrieve_context
+
+        def _context_chunks_fn(chunk):
+            """RAG hook: retrieve context for a single HunkChunk."""
+            result = run_retrieve_context({
+                "diff_hunk":  chunk.diff_text,
+                "file_path":  chunk.file_path,
+                "language":   chunk.language,
+                "repo_owner": owner,
+                "repo_name":  repo,
+            })
+            return result.get("context_chunks") or []
+
         result = review_pr(
             diff=diff_text,
             file_contents=file_contents,
             pr_meta=pr_meta,
             language_hint=language_hint,
+            context_chunks_fn=_context_chunks_fn,
         )
         return result.to_dict()
     except Exception as e:

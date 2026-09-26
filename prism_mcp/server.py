@@ -52,6 +52,18 @@ log = logging.getLogger(__name__)
 
 TOOLS: list[types.Tool] = [
     types.Tool(
+        name="prism_corpus_status",
+        description="Return chunk counts for all ChromaDB collections for a given repo.",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "owner": {"type": "string", "description": "GitHub repo owner"},
+                "repo":  {"type": "string", "description": "GitHub repo name"},
+            },
+            "required": [],
+        },
+    ),
+    types.Tool(
         name="prism_health_check",
         description="Ping Ollama, ChromaDB, and GitHub token. Returns a structured JSON status object.",
         inputSchema={"type": "object", "properties": {}, "required": []},
@@ -148,7 +160,12 @@ async def _call_tool(ctx, params: types.CallToolRequestParams) -> types.CallTool
 
     loop = asyncio.get_running_loop()
 
-    if name == "prism_health_check":
+    if name == "prism_corpus_status":
+        from prism_mcp.rag.vector_store import corpus_status
+        result = await loop.run_in_executor(
+            None, lambda: corpus_status(args.get("owner", ""), args.get("repo", ""))
+        )
+    elif name == "prism_health_check":
         result = await loop.run_in_executor(None, run_health_check)
     elif name == "prism_analyze_pr":
         result = await loop.run_in_executor(None, run_analyze_pr, args)
