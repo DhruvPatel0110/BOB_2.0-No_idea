@@ -139,8 +139,8 @@ def check_stub_tools() -> bool:
     # prism_build_corpus
     from prism_mcp.tools.corpus import run_build_corpus
     result = run_build_corpus({"owner": "test-owner", "repo": "test-repo"})
-    if "status" in result and "error" not in result:
-        ok("prism_build_corpus returns {status: ...} stub")
+    if ("status" in result or "corpus_status" in result or result.get("ok")) and "error" not in result:
+        ok("prism_build_corpus returns valid response")
     else:
         fail(f"prism_build_corpus unexpected response: {result}")
         passed = False

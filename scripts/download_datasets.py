@@ -104,7 +104,8 @@ def download_codereviewer(sample_size: int, output_file: str) -> int:
     print(f"Streaming {HF_DATASET_ID} ({HF_CONFIG})…")
     print(f"Target: {sample_size} rows (~{slots_per_lang} per language)")
 
-    ds = load_dataset(HF_DATASET_ID, HF_CONFIG, split="train", streaming=True)
+    hf_token = os.getenv("HF_TOKEN") or None
+    ds = load_dataset(HF_DATASET_ID, HF_CONFIG, split="train", streaming=True, token=hf_token)
 
     for row in ds:
         total_seen += 1

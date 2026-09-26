@@ -26,6 +26,7 @@ log = logging.getLogger(__name__)
 OLLAMA_BASE_URL    = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL       = os.getenv("OLLAMA_MODEL", "granite3-dense:8b")
 OLLAMA_EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
+OLLAMA_NUM_PREDICT = int(os.getenv("OLLAMA_NUM_PREDICT", "512"))
 HF_TOKEN           = os.getenv("HF_TOKEN", "")
 HF_EMBED_URL       = (
     "https://api-inference.huggingface.co/pipeline/feature-extraction/"
@@ -137,7 +138,7 @@ def generate_review(prompt: str, model: str | None = None) -> tuple[list[dict], 
             "model":   model,
             "prompt":  p,
             "stream":  True,
-            "options": {"temperature": 0.1, "num_predict": 2048},
+            "options": {"temperature": 0.1, "num_predict": OLLAMA_NUM_PREDICT},
         })
         findings = _extract_json_array(raw)
         return findings, raw

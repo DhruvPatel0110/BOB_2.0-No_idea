@@ -5,6 +5,7 @@ findings.py — Finding schema, validation, deduplication, and risk scoring.
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -193,3 +194,60 @@ def findings_to_dicts(findings: list[Finding]) -> list[dict]:
         }
         for f in findings
     ]
+
+
+def attribute_citations(findings: list[Finding], ctx_chunks: list[dict] | None) -> None:
+    """
+    Ensure findings grounded in retrieved RAG context have their citation populated.
+    If the LLM provided a citation, preserve it. If not, match against retrieved chunks
+    by keyword/topic or attribute the top relevant chunk's source_label.
+    """
+    if not findings or not ctx_chunks:
+        return
+
+    valid_chunks = [c for c in ctx_chunks if c.get("source_label")]
+    if not valid_chunks:
+        return
+
+    for f in findings:
+        if f.citation:
+            continue
+
+        content_lower = f"{f.title} {f.explanation} {f.suggestion}".lower()
+        matched_label: Optional[str] = None
+
+        # 1. Direct keyword/rule match
+        for c in valid_chunks:
+            lbl = c.get("source_label", "")
+            lbl_lower = lbl.lower()
+            # If label tokens appear in finding text (e.g. "owasp", "sql", "contributing", "dead code")
+            tokens = [t for t in re.split(r"[^a-zA-Z0-9]+", lbl_lower) if len(t) > 3]
+            if tokens and any(t in content_lower for t in tokens):
+                matched_label = lbl
+                break
+
+            # Category-based heuristic
+            ctype = c.get("chunk_type", "").lower()
+            if f.category == "security" and ("owasp" in ctype or "owasp" in lbl_lower or "security" in lbl_lower):
+                matched_label = lbl
+                break
+            if f.category == "style" and ("style" in ctype or "contributing" in lbl_lower):
+                matched_label = lbl
+                break
+            if f.category == "maintainability" and ("smell" in ctype or "smell" in lbl_lower):
+                matched_label = lbl
+                break
+
+        # 2. Fallback to top-scoring chunk if relevant
+        if not matched_label and valid_chunks:
+            top_score = valid_chunks[0].get("reranker_score", valid_chunks[0].get("score", 0))
+            if top_score is not None:
+                try:
+                    if float(top_score) > -5.0:  # ms-marco cross-encoder logits or cosine score
+                        matched_label = valid_chunks[0].get("source_label")
+                except (ValueError, TypeError):
+                    matched_label = valid_chunks[0].get("source_label")
+
+        if matched_label:
+            f.citation = matched_label
+

@@ -44,7 +44,7 @@ def run_generate_review(args: dict) -> dict:
         from prism_mcp.utils.token_counter  import count_tokens
         from prism_mcp.core.prompt_builder  import build_review_prompt
         from prism_mcp.core.ollama_client   import generate_review
-        from prism_mcp.core.findings        import parse_findings, findings_to_dicts
+        from prism_mcp.core.findings        import parse_findings, findings_to_dicts, attribute_citations
 
         lang = language or _detect_language(file_path)
 
@@ -66,6 +66,8 @@ def run_generate_review(args: dict) -> dict:
         )
         raw_findings, raw_text = generate_review(prompt)
         findings = parse_findings(raw_findings, file_path)
+        if context_chunks:
+            attribute_citations(findings, context_chunks)
 
         return {
             "findings":    findings_to_dicts(findings),

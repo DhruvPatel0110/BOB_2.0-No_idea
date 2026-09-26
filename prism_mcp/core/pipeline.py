@@ -22,7 +22,7 @@ from prism_mcp.core.ollama_client   import generate_review, generate_summary
 from prism_mcp.core.findings        import (
     parse_findings, deduplicate, compute_risk_score,
     findings_by_severity, findings_by_category, findings_to_dicts,
-    SKIP_EXTENSIONS, Finding,
+    attribute_citations, SKIP_EXTENSIONS, Finding,
 )
 
 log = logging.getLogger(__name__)
@@ -162,6 +162,8 @@ def review_pr(
         duration = time.monotonic() - t_hunk
 
         findings = parse_findings(raw_findings, chunk.file_path)
+        if ctx_chunks:
+            attribute_citations(findings, ctx_chunks)
         all_findings.extend(findings)
         hunk_results.append(HunkResult(
             file_path=chunk.file_path,

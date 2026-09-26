@@ -83,7 +83,7 @@ TOOLS: list[types.Tool] = [
     ),
     types.Tool(
         name="prism_build_corpus",
-        description="Index a repo's style docs and past PR review comments into ChromaDB (Phase 4). Currently a stub.",
+        description="Index a repo's style docs and past PR review comments into ChromaDB (Phase 4). Idempotent via SHA-256.",
         inputSchema={
             "type": "object",
             "properties": {
@@ -96,7 +96,7 @@ TOOLS: list[types.Tool] = [
     ),
     types.Tool(
         name="prism_retrieve_context",
-        description="Retrieve top-k RAG context chunks for a diff hunk (Phase 4). Currently returns empty array.",
+        description="Retrieve top-k RAG context chunks for a diff hunk with cross-encoder reranking (Phase 4).",
         inputSchema={
             "type": "object",
             "properties": {
@@ -120,7 +120,7 @@ TOOLS: list[types.Tool] = [
                 "language":       {"type": "string", "description": "Programming language"},
                 "context_chunks": {
                     "type":  "array",
-                    "description": "RAG context chunks from prism_retrieve_context (ignored in Phase 2/3)",
+                    "description": "RAG context chunks from prism_retrieve_context for prompt grounding",
                     "items": {"type": "object"},
                 },
             },
@@ -191,7 +191,7 @@ async def _call_tool(ctx, params: types.CallToolRequestParams) -> types.CallTool
 
 server = Server(
     "prism",
-    version="0.3.0",
+    version="0.5.0",
     description="PRISM — AI Code Review Coach for IBM Bob Hackathon",
     on_list_tools=_list_tools,
     on_call_tool=_call_tool,

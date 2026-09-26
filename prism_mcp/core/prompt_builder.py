@@ -41,8 +41,12 @@ Rules:
     "title":       "<short title, ≤10 words>",
     "explanation": "<why this matters, 1-3 sentences>",
     "suggestion":  "<concrete fix, code snippet or description>",
-    "citation":    null
+    "citation":    "<exact source_label from RELEVANT CONTEXT if grounded in context, else null>"
   }
+- If a finding relates to or violates any guideline, style doc, past review, or rule \
+in the 'RELEVANT CONTEXT' block, set "citation" to that exact source_label \
+(e.g. "CONTRIBUTING.md §...", "PR #...", "OWASP ...", "Code smell: ..."). \
+Otherwise, set "citation": null.
 
 Severity guide:
   Blocker      — must be fixed before merge (security hole, data loss, crash)
@@ -92,7 +96,7 @@ def build_review_prompt(
 
     # ── Context block (Phase 4+) ───────────────────────────────────────────
     if context_chunks:
-        from prism_mcp.utils.token_counter import count_tokens, CONTEXT_TOKEN_BUDGET
+        from prism_mcp.utils.token_counter import count_tokens
         ctx_parts: list[str] = []
         budget = CONTEXT_TOKEN_BUDGET
         for c in context_chunks:
