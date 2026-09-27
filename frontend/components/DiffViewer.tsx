@@ -104,14 +104,19 @@ export default function DiffViewer({ diffText, findings }: DiffViewerProps) {
       }
 
       // Check if this line is anchored to any finding
-      const lineFinding = findings.find(
-        (f) =>
-          (f.file_path === currentFile?.path ||
-            currentFile?.path.endsWith(f.file_path) ||
-            f.file_path.endsWith(currentFile?.path || "")) &&
+      const lineFinding = findings.find((f) => {
+        const fp = f.file_path || (f as any).file || "";
+        const cp = currentFile?.path || "";
+        const fileMatches =
+          !fp || !cp
+            ? true
+            : fp === cp || cp.endsWith(fp) || fp.endsWith(cp);
+        return (
+          fileMatches &&
           ((f.line_start === nNum && nNum !== undefined) ||
             (f.line_start === oNum && oNum !== undefined))
-      );
+        );
+      });
 
       currentFile.lines.push({
         type,
@@ -136,12 +141,11 @@ export default function DiffViewer({ diffText, findings }: DiffViewerProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
       {parsedFiles.map((file, fileIdx) => {
-        const fileFindings = findings.filter(
-          (f) =>
-            f.file_path === file.path ||
-            file.path.endsWith(f.file_path) ||
-            f.file_path.endsWith(file.path)
-        );
+        const fileFindings = findings.filter((f) => {
+          const fp = f.file_path || (f as any).file || "";
+          const cp = file.path || "";
+          return !fp || !cp ? true : fp === cp || cp.endsWith(fp) || fp.endsWith(cp);
+        });
 
         return (
           <div key={fileIdx} className="diff-container">
