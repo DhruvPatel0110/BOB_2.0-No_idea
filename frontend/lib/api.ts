@@ -18,6 +18,7 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
       ...options,
       headers: {
         "Content-Type": "application/json",
+        "ngrok-skip-browser-warning": "true",
         ...(options?.headers || {}),
       },
     });
