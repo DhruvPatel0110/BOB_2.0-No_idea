@@ -109,9 +109,10 @@ export default function ReviewDetailPage() {
       if (selectedCategory && f.category?.toLowerCase() !== selectedCategory.toLowerCase()) return false;
       if (filterText.trim()) {
         const q = filterText.toLowerCase();
-        const matchesTitle = f.title.toLowerCase().includes(q);
-        const matchesPath = f.file_path.toLowerCase().includes(q);
-        const matchesExpl = f.explanation.toLowerCase().includes(q);
+        const fPath = f.file_path || (f as any).file || "";
+        const matchesTitle = f.title?.toLowerCase().includes(q) || false;
+        const matchesPath = fPath.toLowerCase().includes(q);
+        const matchesExpl = f.explanation?.toLowerCase().includes(q) || false;
         if (!matchesTitle && !matchesPath && !matchesExpl) return false;
       }
       return true;
@@ -144,7 +145,7 @@ export default function ReviewDetailPage() {
         <RefreshCw size={32} className="spinner" style={{ color: "var(--accent-blue)", marginBottom: "1rem" }} />
         <h2 style={{ fontSize: "1.25rem", fontWeight: 600 }}>Loading Review Session...</h2>
         <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", marginTop: "0.5rem" }}>
-          Connecting to backend at localhost:8000
+          Connecting to PRISM API Engine...
         </p>
       </div>
     );
@@ -653,7 +654,7 @@ export default function ReviewDetailPage() {
                       >
                         <FileCode size={13} />
                         <span>
-                          {finding.file_path}:L{finding.line_start}
+                          {finding.file_path || (finding as any).file || "code"}:L{finding.line_start}
                           {finding.line_end !== finding.line_start ? `-${finding.line_end}` : ""}
                         </span>
                       </div>
@@ -662,7 +663,7 @@ export default function ReviewDetailPage() {
                         {finding.explanation}
                       </p>
 
-                      {finding.suggested_fix && (
+                      {(finding.suggested_fix || (finding as any).suggestion) && (
                         <div
                           style={{
                             padding: "0.6rem 0.85rem",
@@ -684,7 +685,7 @@ export default function ReviewDetailPage() {
                             </span>
                             <button
                               type="button"
-                              onClick={() => copyCode(finding.suggested_fix || "", cardId)}
+                              onClick={() => copyCode(finding.suggested_fix || (finding as any).suggestion || "", cardId)}
                               style={{
                                 background: "transparent",
                                 border: "none",
@@ -718,7 +719,7 @@ export default function ReviewDetailPage() {
                               overflowX: "auto",
                             }}
                           >
-                            <code>{finding.suggested_fix}</code>
+                            <code>{finding.suggested_fix || (finding as any).suggestion}</code>
                           </pre>
                         </div>
                       )}

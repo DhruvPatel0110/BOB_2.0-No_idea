@@ -11,11 +11,13 @@ export interface Finding {
   severity: Severity;
   category: Category;
   title: string;
-  file_path: string;
+  file_path?: string;
+  file?: string;
   line_start: number;
   line_end: number;
   explanation: string;
   suggested_fix?: string | null;
+  suggestion?: string | null;
   citation?: string | null;
 }
 

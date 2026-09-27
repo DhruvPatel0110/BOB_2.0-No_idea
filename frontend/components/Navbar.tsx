@@ -70,7 +70,7 @@ export default function Navbar() {
           </Link>
 
           <a
-            href="http://localhost:8000/docs"
+            href={`${process.env.NEXT_PUBLIC_API_URL || "https://prism-backend-8yq3.onrender.com"}/docs`}
             target="_blank"
             rel="noreferrer"
             style={{

@@ -9,7 +9,9 @@ import {
   PostReviewResponse,
 } from "./types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://prism-backend-8yq3.onrender.com";
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const method = options?.method || "GET";
