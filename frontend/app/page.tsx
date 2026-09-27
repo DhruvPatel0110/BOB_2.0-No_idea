@@ -255,19 +255,19 @@ export default function HomePage() {
               <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
                 <button
                   type="button"
+                  onClick={() => setPreset("https://github.com/DhruvPatel0110/BOB_2.0-No_idea/pull/1")}
+                  className="btn btn-secondary"
+                  style={{ fontSize: "0.75rem", padding: "0.3rem 0.6rem" }}
+                >
+                  <span>DhruvPatel0110/BOB_2.0-No_idea #1 (Demo Repo)</span>
+                </button>
+                <button
+                  type="button"
                   onClick={() => setPreset("https://github.com/pallets/flask/pull/5000")}
                   className="btn btn-secondary"
                   style={{ fontSize: "0.75rem", padding: "0.3rem 0.6rem" }}
                 >
                   <span>pallets/flask #5000</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPreset("https://github.com/DhruvPatel0110/BOB_2.0-No_idea/pull/1")}
-                  className="btn btn-secondary"
-                  style={{ fontSize: "0.75rem", padding: "0.3rem 0.6rem" }}
-                >
-                  <span>DhruvPatel0110/BOB_2.0-No_idea #1</span>
                 </button>
                 <button
                   type="button"
@@ -278,6 +278,54 @@ export default function HomePage() {
                   <span>pallets/werkzeug #2600</span>
                 </button>
               </div>
+            </div>
+
+            {/* Instant Judge Demo Mode (Phase 9 Backup / Fast Review) */}
+            <div
+              style={{
+                marginTop: "1.25rem",
+                padding: "0.85rem 1rem",
+                background: "rgba(56, 139, 253, 0.08)",
+                border: "1px solid rgba(56, 139, 253, 0.3)",
+                borderRadius: "8px",
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "0.75rem",
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontSize: "0.85rem",
+                    fontWeight: 700,
+                    color: "var(--accent-blue)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.4rem",
+                  }}
+                >
+                  <Sparkles size={14} color="#58a6ff" />
+                  <span>Judges Fast Demo (PR #1)</span>
+                </div>
+                <div style={{ fontSize: "0.78rem", color: "var(--text-secondary)", marginTop: 2 }}>
+                  Pre-analyzed PR #1 with RAG conventions (CONTRIBUTING.md §1.1 & OWASP A03) + live GitHub posting.
+                </div>
+              </div>
+
+              <Link
+                href="/review/demo-pr-1"
+                className="btn btn-primary"
+                style={{
+                  backgroundColor: "#238636",
+                  borderColor: "#2ea043",
+                  fontSize: "0.8rem",
+                  padding: "0.35rem 0.8rem",
+                }}
+              >
+                ⚡ View Staged Demo PR
+              </Link>
             </div>
           </div>
         </div>

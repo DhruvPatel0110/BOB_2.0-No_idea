@@ -381,10 +381,78 @@ export default function ReviewDetailPage() {
               <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: 1.5, marginBottom: "1rem" }}>
                 {session.error || session.progress?.message || "An unknown error occurred during PR review processing."}
               </p>
+
+              {/* Graceful Error Guidance (Phase 9) */}
+              {(session.error?.toLowerCase().includes("ollama") ||
+                session.error?.toLowerCase().includes("11434") ||
+                session.error?.toLowerCase().includes("connection refused")) && (
+                <div
+                  style={{
+                    backgroundColor: "var(--bg-tertiary)",
+                    padding: "0.85rem 1rem",
+                    borderRadius: "6px",
+                    marginBottom: "1.25rem",
+                    borderLeft: "3px solid #d29922",
+                    fontSize: "0.82rem",
+                  }}
+                >
+                  <strong style={{ color: "#d29922" }}>Troubleshooting Ollama:</strong>
+                  <div style={{ marginTop: 4, color: "var(--text-primary)" }}>
+                    Ensure the local Ollama daemon is active (`ollama serve`) and the generation model is pulled (`ollama pull granite3-dense:2b`).
+                  </div>
+                </div>
+              )}
+
+              {(session.error?.toLowerCase().includes("github_token") ||
+                session.error?.toLowerCase().includes("401") ||
+                session.error?.toLowerCase().includes("token")) && (
+                <div
+                  style={{
+                    backgroundColor: "var(--bg-tertiary)",
+                    padding: "0.85rem 1rem",
+                    borderRadius: "6px",
+                    marginBottom: "1.25rem",
+                    borderLeft: "3px solid #d29922",
+                    fontSize: "0.82rem",
+                  }}
+                >
+                  <strong style={{ color: "#d29922" }}>Troubleshooting GitHub Token:</strong>
+                  <div style={{ marginTop: 4, color: "var(--text-primary)" }}>
+                    Verify that `GITHUB_TOKEN` is set in your `.env` file with `repo` and `write:discussion` permissions.
+                  </div>
+                </div>
+              )}
+
+              {(session.error?.toLowerCase().includes("diff is empty") ||
+                session.error?.toLowerCase().includes("404")) && (
+                <div
+                  style={{
+                    backgroundColor: "var(--bg-tertiary)",
+                    padding: "0.85rem 1rem",
+                    borderRadius: "6px",
+                    marginBottom: "1.25rem",
+                    borderLeft: "3px solid #d29922",
+                    fontSize: "0.82rem",
+                  }}
+                >
+                  <strong style={{ color: "#d29922" }}>Troubleshooting PR URL:</strong>
+                  <div style={{ marginTop: 4, color: "var(--text-primary)" }}>
+                    Ensure the Pull Request exists, is accessible with your GitHub Token, and contains modified files.
+                  </div>
+                </div>
+              )}
+
               <div style={{ display: "flex", gap: "0.75rem" }}>
                 <Link href="/" className="btn btn-secondary">
                   Back to Dashboard
                 </Link>
+                <button
+                  type="button"
+                  onClick={() => router.push("/review/demo-pr-1")}
+                  className="btn btn-primary"
+                >
+                  ⚡ Try Staged Demo PR Instead
+                </button>
               </div>
             </div>
           </div>
