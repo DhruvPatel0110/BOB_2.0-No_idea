@@ -140,37 +140,41 @@ def query_collection(
     """
     Query a collection and return the top-n results as dicts.
 
-    Returns [] (not an error) if the collection is empty.
+    Returns [] (not an error) if the collection is empty or query fails.
     """
-    col = _get_collection(collection_name)
-    count = col.count()
-    if count == 0:
+    try:
+        col = _get_collection(collection_name)
+        count = col.count()
+        if count == 0:
+            return []
+
+        n = min(n_results, count)
+        result = col.query(
+            query_embeddings=[query_embedding],
+            n_results=n,
+            include=["documents", "metadatas", "distances"],
+        )
+
+        rows = []
+        for doc, meta, dist in zip(
+            result["documents"][0],
+            result["metadatas"][0],
+            result["distances"][0],
+        ):
+            rows.append({
+                "text":         doc,
+                "source_label": meta.get("source_label", ""),
+                "file_path":    meta.get("file_path", ""),
+                "start_line":   meta.get("start_line", 0),
+                "end_line":     meta.get("end_line", 0),
+                "language":     meta.get("language", ""),
+                "chunk_type":   meta.get("chunk_type", ""),
+                "score":        round(1 - dist, 4),   # cosine sim from distance
+            })
+        return rows
+    except Exception as e:
+        log.debug("query_collection failed for %s: %s", collection_name, e)
         return []
-
-    n = min(n_results, count)
-    result = col.query(
-        query_embeddings=[query_embedding],
-        n_results=n,
-        include=["documents", "metadatas", "distances"],
-    )
-
-    rows = []
-    for doc, meta, dist in zip(
-        result["documents"][0],
-        result["metadatas"][0],
-        result["distances"][0],
-    ):
-        rows.append({
-            "text":         doc,
-            "source_label": meta.get("source_label", ""),
-            "file_path":    meta.get("file_path", ""),
-            "start_line":   meta.get("start_line", 0),
-            "end_line":     meta.get("end_line", 0),
-            "language":     meta.get("language", ""),
-            "chunk_type":   meta.get("chunk_type", ""),
-            "score":        round(1 - dist, 4),   # cosine sim from distance
-        })
-    return rows
 
 
 # ---------------------------------------------------------------------------
