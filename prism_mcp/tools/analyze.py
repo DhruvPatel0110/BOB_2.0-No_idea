@@ -96,7 +96,7 @@ def _fetch_pr(owner: str, repo: str, number: int) -> tuple[dict, str, dict[str, 
 # Public entry point
 # ---------------------------------------------------------------------------
 
-def run_analyze_pr(args: dict) -> dict:
+def run_analyze_pr(args: dict, progress_cb: Optional[Callable] = None) -> dict:
     """
     Called by the MCP server for the prism_analyze_pr tool.
 
@@ -107,6 +107,7 @@ def run_analyze_pr(args: dict) -> dict:
 
     Returns the ReviewResult as a dict, or {"error": "..."} on failure.
     """
+    progress_cb   = args.get("progress_cb") or progress_cb
     pr_url        = args.get("pr_url", "").strip()
     language_hint = args.get("language_hint") or None
 
@@ -122,6 +123,9 @@ def run_analyze_pr(args: dict) -> dict:
     except ValueError as e:
         return {"error": str(e)}
 
+    if progress_cb:
+        progress_cb("fetching_pr", f"Fetching PR #{number} metadata and diff from GitHub ({owner}/{repo})...", 10)
+
     try:
         pr_meta, diff_text, file_contents = _fetch_pr(owner, repo, number)
     except urllib.error.HTTPError as e:
@@ -136,6 +140,9 @@ def run_analyze_pr(args: dict) -> dict:
 
     if not diff_text.strip():
         return {"error": "PR diff is empty — nothing to review"}
+
+    if progress_cb:
+        progress_cb("diff_fetched", f"Fetched diff ({len(diff_text)} chars) and {len(file_contents)} changed files", 20)
 
     # ── Run pipeline ──────────────────────────────────────────────────────
     try:
@@ -159,6 +166,7 @@ def run_analyze_pr(args: dict) -> dict:
             pr_meta=pr_meta,
             language_hint=language_hint,
             context_chunks_fn=_context_chunks_fn,
+            progress_cb=progress_cb,
         )
         return result.to_dict()
     except Exception as e:

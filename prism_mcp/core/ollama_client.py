@@ -24,9 +24,10 @@ log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 OLLAMA_BASE_URL    = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-OLLAMA_MODEL       = os.getenv("OLLAMA_MODEL", "granite3-dense:8b")
+OLLAMA_MODEL       = os.getenv("OLLAMA_MODEL", "granite3-dense:2b")
 OLLAMA_EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
 OLLAMA_NUM_PREDICT = int(os.getenv("OLLAMA_NUM_PREDICT", "512"))
+OLLAMA_TIMEOUT     = int(os.getenv("OLLAMA_TIMEOUT", "600"))
 HF_TOKEN           = os.getenv("HF_TOKEN", "")
 HF_EMBED_URL       = (
     "https://api-inference.huggingface.co/pipeline/feature-extraction/"
@@ -47,12 +48,13 @@ def _post_json(url: str, payload: dict, timeout: int = 120, headers: dict | None
         return r.read()
 
 
-def _stream_generate(url: str, payload: dict, timeout: int = 240) -> str:
+def _stream_generate(url: str, payload: dict, timeout: int | None = None) -> str:
     """
     Send a streaming generate request to Ollama and collect the full
     response text by concatenating all 'response' fields from the
     newline-delimited JSON stream.
     """
+    timeout = timeout or OLLAMA_TIMEOUT
     data = json.dumps(payload).encode()
     req = urllib.request.Request(
         url, data=data,
@@ -134,11 +136,20 @@ def generate_review(prompt: str, model: str | None = None) -> tuple[list[dict], 
     url   = f"{OLLAMA_BASE_URL}/api/generate"
 
     def _attempt(p: str) -> tuple[list[dict], str]:
+        total_cores = os.cpu_count() or 4
+        safe_threads = max(1, min(total_cores - 2, 6))
+        env_threads = os.getenv("OLLAMA_NUM_THREADS")
+        threads = int(env_threads) if env_threads else safe_threads
+
         raw = _stream_generate(url, {
             "model":   model,
             "prompt":  p,
             "stream":  True,
-            "options": {"temperature": 0.1, "num_predict": OLLAMA_NUM_PREDICT},
+            "options": {
+                "temperature": 0.1,
+                "num_predict": OLLAMA_NUM_PREDICT,
+                "num_thread": threads,
+            },
         })
         findings = _extract_json_array(raw)
         return findings, raw
@@ -174,11 +185,20 @@ def generate_summary(prompt: str, model: str | None = None) -> str:
     """
     model = model or OLLAMA_MODEL
     url   = f"{OLLAMA_BASE_URL}/api/generate"
+    total_cores = os.cpu_count() or 4
+    safe_threads = max(1, min(total_cores - 2, 6))
+    env_threads = os.getenv("OLLAMA_NUM_THREADS")
+    threads = int(env_threads) if env_threads else safe_threads
+
     return _stream_generate(url, {
         "model":   model,
         "prompt":  prompt,
         "stream":  True,
-        "options": {"temperature": 0.3, "num_predict": 512},
+        "options": {
+            "temperature": 0.3,
+            "num_predict": 512,
+            "num_thread": threads,
+        },
     })
 
 

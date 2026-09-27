@@ -39,20 +39,25 @@ async def _run_review_job(
 ) -> None:
     """Background task that executes the full PRISM review pipeline."""
     try:
-        update_session(
-            review_id,
-            progress={
-                "stage": "fetching_pr",
-                "message": "Fetching PR diff and changed files from GitHub...",
-                "percent": 20,
-            },
-        )
+        def _progress_cb(stage: str, message: str, percent: int) -> None:
+            print(f"[API REVIEW {review_id[:8]}] [{stage.upper()}] {message} ({percent}%)", flush=True)
+            update_session(
+                review_id,
+                progress={
+                    "stage": stage,
+                    "message": message,
+                    "percent": percent,
+                },
+            )
+
+        _progress_cb("queued", "Initializing review pipeline and checking environment...", 5)
 
         loop = asyncio.get_running_loop()
         args = {
             "pr_url": pr_url,
             "post_comments": post_comments,
             "language_hint": language_hint,
+            "progress_cb": _progress_cb,
         }
 
         # run_analyze_pr runs chunking, RAG context retrieval, Ollama generation, and findings parsing

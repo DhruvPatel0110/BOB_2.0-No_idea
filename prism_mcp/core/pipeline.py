@@ -28,6 +28,7 @@ from prism_mcp.core.findings        import (
 log = logging.getLogger(__name__)
 
 MAX_FILES_PER_PR = int(os.getenv("MAX_FILES_PER_PR", "20"))
+MAX_HUNKS_PER_PR = int(os.getenv("MAX_HUNKS_PER_PR", "5"))
 
 # ---------------------------------------------------------------------------
 # Result types
@@ -80,7 +81,7 @@ def review_pr(
     pr_meta:       Optional[dict]           = None,
     language_hint: Optional[str]            = None,
     context_chunks_fn: Optional[Callable[[HunkChunk], list[dict]]] = None,
-    progress_cb:   Optional[Callable[[str], None]] = None,
+    progress_cb:   Optional[Callable] = None,
 ) -> ReviewResult:
     """
     Full review pipeline for one PR.
@@ -101,13 +102,22 @@ def review_pr(
     pr_meta       = pr_meta or {}
     file_contents = file_contents or {}
 
-    def _progress(msg: str) -> None:
+    def _progress(stage: str, msg: str, percent: int = 0) -> None:
         if progress_cb:
-            progress_cb(msg)
-        log.info(msg)
+            try:
+                progress_cb(stage, msg, percent)
+            except TypeError:
+                try:
+                    progress_cb(f"[{stage}] {msg}")
+                except Exception:
+                    pass
+            except Exception as ex:
+                log.warning("progress_cb error: %s", ex)
+        log.info("[%s] %s (%d%%)", stage, msg, percent)
+        print(f"\n[PRISM-PIPELINE] [{stage.upper()}] {msg} ({percent}%)", flush=True)
 
     # ── 1. Parse diff ──────────────────────────────────────────────────────
-    _progress("Parsing diff...")
+    _progress("parsing_diff", "Parsing PR diff into syntax hunks and AST nodes...", 25)
     all_chunks = parse_diff(diff, language_hint=language_hint, file_contents=file_contents)
 
     # ── 2. Filter skipped file types ──────────────────────────────────────
@@ -131,7 +141,7 @@ def review_pr(
         extra   = [f for f in seen_files[MAX_FILES_PER_PR:]]
         files_skipped.extend(extra)
         chunks_to_review = [c for c in chunks_to_review if c.file_path in allowed]
-        _progress(f"Large PR: capped at {MAX_FILES_PER_PR} files; skipping {len(extra)} others")
+        _progress("file_capped", f"Large PR: capped at {MAX_FILES_PER_PR} files; skipping {len(extra)} others", 28)
 
     files_reviewed = list(dict.fromkeys(c.file_path for c in chunks_to_review))
 
@@ -140,7 +150,15 @@ def review_pr(
     for chunk in chunks_to_review:
         expanded.extend(split_hunk_if_needed(chunk))
 
-    _progress(f"Reviewing {len(files_reviewed)} file(s), {len(expanded)} hunk(s)...")
+    if len(expanded) > MAX_HUNKS_PER_PR:
+        _progress(
+            "hunk_capped",
+            f"PR has {len(expanded)} hunks; analyzing top {MAX_HUNKS_PER_PR} hunks for responsive analysis (set MAX_HUNKS_PER_PR in .env to change)",
+            30,
+        )
+        expanded = expanded[:MAX_HUNKS_PER_PR]
+
+    _progress("analyzing_hunks", f"Reviewing {len(files_reviewed)} file(s), {len(expanded)} hunk(s)...", 30)
 
     # ── 4. Per-hunk review loop ────────────────────────────────────────────
     all_findings: list[Finding] = []
@@ -150,18 +168,31 @@ def review_pr(
         label = chunk.file_path
         if chunk.sub_chunk_total > 1:
             label += f" [{chunk.sub_chunk_index}/{chunk.sub_chunk_total}]"
-        _progress(f"  [{i}/{len(expanded)}] {label}")
+
+        pct = 30 + int(((i - 1) / len(expanded)) * 55)
+        _progress(
+            "analyzing_hunk",
+            f"[{i}/{len(expanded)}] Reviewing {label} (lines {chunk.line_start}-{chunk.line_end})",
+            pct,
+        )
 
         # Phase 4 hook: retrieve RAG context (no-op in Phase 2)
+        t_rag = time.monotonic()
         ctx_chunks = context_chunks_fn(chunk) if context_chunks_fn else None
+        rag_s = time.monotonic() - t_rag
+        print(f"  [RAG] Retrieved {len(ctx_chunks or [])} context chunks in {rag_s:.2f}s", flush=True)
 
         prompt = build_review_prompt(chunk, context_chunks=ctx_chunks)
 
+        print(f"  [OLLAMA] Prompting model ({len(prompt)} chars)...", flush=True)
         t_hunk = time.monotonic()
         raw_findings, raw_text = generate_review(prompt)
         duration = time.monotonic() - t_hunk
+        print(f"  [OLLAMA] Generated response in {duration:.1f}s", flush=True)
 
         findings = parse_findings(raw_findings, chunk.file_path)
+        print(f"  [FINDINGS] Extracted {len(findings)} finding(s) from hunk {i}/{len(expanded)}", flush=True)
+
         if ctx_chunks:
             attribute_citations(findings, ctx_chunks)
         all_findings.extend(findings)
@@ -175,14 +206,14 @@ def review_pr(
         log.debug("  hunk %d/%d → %d findings in %.1fs", i, len(expanded), len(findings), duration)
 
     # ── 5. Deduplicate + score ─────────────────────────────────────────────
-    _progress("Deduplicating and scoring...")
+    _progress("scoring", "Deduplicating findings and computing risk score...", 88)
     deduped   = deduplicate(all_findings)
     score     = compute_risk_score(deduped)
     by_sev    = findings_by_severity(deduped)
     by_cat    = findings_by_category(deduped)
 
     # ── 6. PR summary ─────────────────────────────────────────────────────
-    _progress("Generating PR summary...")
+    _progress("generating_summary", "Generating PR executive summary via LLM...", 92)
     summary_prompt = build_summary_prompt(
         title=pr_meta.get("title", ""),
         body=pr_meta.get("body", ""),
@@ -192,7 +223,7 @@ def review_pr(
     summary = generate_summary(summary_prompt).strip()
 
     total_time = time.monotonic() - t0
-    _progress(f"Done — {len(deduped)} findings, risk score {score}, {total_time:.1f}s total")
+    _progress("complete", f"Review complete — {len(deduped)} findings, risk score {score}, {total_time:.1f}s total", 100)
 
     return ReviewResult(
         pr_url=pr_meta.get("url", ""),
@@ -205,5 +236,5 @@ def review_pr(
         files_skipped=files_skipped,
         hunk_count=len(expanded),
         duration_s=total_time,
-        model_used=os.getenv("OLLAMA_MODEL", "granite3-dense:8b"),
+        model_used=os.getenv("OLLAMA_MODEL", "granite3-dense:2b"),
     )

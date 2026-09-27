@@ -84,6 +84,15 @@ class HunkChunk:
         return "\n".join(self.diff_lines)
 
     @property
+    def line_start(self) -> int:
+        return self.new_start if self.new_start > 0 else self.old_start
+
+    @property
+    def line_end(self) -> int:
+        start = self.line_start
+        return max(start, start + len(self.diff_lines) - 1)
+
+    @property
     def additions(self) -> int:
         return sum(1 for l in self.diff_lines if l.startswith("+") and not l.startswith("+++"))
 

@@ -20,7 +20,7 @@ import urllib.error
 def _cfg() -> dict:
     return {
         "ollama_url":   os.getenv("OLLAMA_BASE_URL",    "http://localhost:11434"),
-        "gen_model":    os.getenv("OLLAMA_MODEL",        "granite3-dense:8b"),
+        "gen_model":    os.getenv("OLLAMA_MODEL",        "granite3-dense:2b"),
         "embed_model":  os.getenv("OLLAMA_EMBED_MODEL",  "nomic-embed-text"),
         "github_token": os.getenv("GITHUB_TOKEN",        ""),
         "chroma_dir":   os.getenv("CHROMA_PERSIST_DIR",  "./data/chroma_db"),
